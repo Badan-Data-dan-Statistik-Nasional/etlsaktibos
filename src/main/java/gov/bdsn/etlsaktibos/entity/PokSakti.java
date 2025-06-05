@@ -10,14 +10,13 @@ import lombok.Setter;
 @Entity
 @Getter @Setter @NoArgsConstructor
 public class PokSakti {
-
     @Id
     @GeneratedValue
     private Integer id;
-    private String akun;
-    private String no;
-    private String detail;
-    private String volume;
+    private String  akun;
+    private String  no;
+    private String  detail;
+    private String  volume;
     private Integer harga;
     private Integer pagu;
 

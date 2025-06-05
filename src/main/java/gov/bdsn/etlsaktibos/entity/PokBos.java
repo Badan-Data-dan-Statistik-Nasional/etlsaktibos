@@ -7,18 +7,17 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-
 @Entity
 @Getter @Setter @NoArgsConstructor
 public class PokBos {
     @Id
     @GeneratedValue
     private Integer id;
-    private String akun;
+    private String  akun;
     private Integer no;
-    private String detail;
+    private String  detail;
     private Integer volume;
-    private String satuan;
+    private String  satuan;
     private Integer harga;
     private Integer pagu;
 

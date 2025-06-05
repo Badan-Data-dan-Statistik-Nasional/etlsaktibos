@@ -10,6 +10,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
+import org.h2.tools.Server;
 
 String saktiFilePath = "C:/Users/Thahir/Documents/projects/etlsaktibos/SaktiFile.xlsx";
 String bosFilePath = "C:/Users/Thahir/Documents/projects/etlsaktibos/BosFile.xlsx";
@@ -21,6 +22,7 @@ private Session session;
 
 void main (String[] args) throws Exception{
 
+    Server webServer = Server.createWebServer("-web", "-webPort", "8082").start();
 
     //println("2896".matches("\\d+"));
     //return;
@@ -40,10 +42,28 @@ void main (String[] args) throws Exception{
 
     session.close();
     sessionFactory.close();
+
+    webServer.stop();
 }
 
 void combineBosSakti () throws InterruptedException {
-    Thread.sleep(1000);
+    //Combine the two files here;
+
+    //Just try to get the diff data with a query, and insert the result to PokCombined
+
+
+    //Start looping in PokBos
+    //Insert PokBos record into PokCombined
+    //Check if there is the same akun and detail in PokSakti
+    //  - if true, insert PokSakti into PokCombined
+    //  - if false,
+
+    System.out.println("Press Enter to exit....");
+    try {
+        System.in.read();
+    } catch (IOException e) {
+        throw new RuntimeException(e);
+    }
 }
 
 void readSaktiFile (String filepath)  {
