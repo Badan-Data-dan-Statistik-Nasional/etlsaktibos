@@ -1,9 +1,8 @@
+import gov.bdsn.etlsaktibos.entity.Balance;
 import gov.bdsn.etlsaktibos.entity.PokBos;
 import gov.bdsn.etlsaktibos.entity.PokCombined;
 import gov.bdsn.etlsaktibos.entity.PokSakti;
 import gov.bdsn.etlsaktibos.util.HibernateUtil;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -12,17 +11,21 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.h2.tools.Server;
+import org.hibernate.query.Query;
 
 String saktiFilePath = "C:/Users/Thahir/Documents/projects/etlsaktibos/SaktiFile.xlsx";
 String bosFilePath = "C:/Users/Thahir/Documents/projects/etlsaktibos/BosFile.xlsx";
-String outputFilePath;
+String outputFilePath="C:/Users/Thahir/Documents/projects/etlsaktibos/Combined.xlsx";
 
-private Logger logger = LogManager.getLogger(this.getClass());
 private SessionFactory sessionFactory;
 private Session session;
 
 void main (String[] args) throws Exception{
 
+    System.out.println("\n\n" +
+            "EtlSaktiBos version 1.0\n" +
+            "Copyright (c) Ahmad Thahir (ataherter@yahoo.co.id).\n" +
+            "All rights reserved.\n\n");
     Server webServer = Server.createWebServer("-web", "-webPort", "8082").start();
 
     //println("2896".matches("\\d+"));
@@ -40,26 +43,93 @@ void main (String[] args) throws Exception{
     readSaktiFile(saktiFilePath);
 
     combineBosSakti();
+    exportToExcelFile(outputFilePath);
 
     session.close();
     sessionFactory.close();
 
+    System.out.println("Press Enter to exit....");
+    try {
+        System.in.read();
+    } catch (IOException e) {
+        throw new RuntimeException(e);
+    }
+
     webServer.stop();
 }
 
+void exportToExcelFile (String filepath) {
+    System.out.println("Export to Excel file ...");
+    try {
+        FileOutputStream file = new FileOutputStream(filepath);
+        XSSFWorkbook workbook = new XSSFWorkbook();
+
+        XSSFSheet sheetCombined = workbook.createSheet("Combined");
+        String hqlCombined = "FROM PokCombined pc ORDER BY pc.akun, pc.no";
+        Query<PokCombined> pokCombinedQuery = session.createQuery(hqlCombined, PokCombined.class);
+        List<PokCombined> pokCombineds = pokCombinedQuery.list();
+
+        AtomicInteger rowIndex= new AtomicInteger();
+        pokCombineds.forEach(pokCombined -> {
+            Row row = sheetCombined.createRow(rowIndex.getAndIncrement());
+            if (rowIndex.get()==1) {
+                row.createCell(0).setCellValue("ID");
+                row.createCell(1).setCellValue("AKUN");
+                row.createCell(2).setCellValue("BOSDETAIL");
+                row.createCell(3).setCellValue("BOSHARGA");
+                row.createCell(4).setCellValue("BOSPAGU");
+                row.createCell(5).setCellValue("BOSSATUAN");
+                row.createCell(6).setCellValue("BOSVOLUME");
+                row.createCell(7).setCellValue("NO");
+                row.createCell(8).setCellValue("SAKTIDETAIL");
+                row.createCell(9).setCellValue("SAKTIHARGA");
+                row.createCell(10).setCellValue("SAKTIPAGU");
+                row.createCell(11).setCellValue("SAKTIVOLUME");
+                row.createCell(12).setCellValue("STATUS");
+            } else {
+                row.createCell(0).setCellValue(rowIndex.get()-1);
+                //if (pokCombined.getId() != null) row.createCell(0).setCellValue(pokCombined.getId());
+                if (pokCombined.getAkun() != null) row.createCell(1).setCellValue(pokCombined.getAkun());
+                if (pokCombined.getBosDetail() != null) row.createCell(2).setCellValue(pokCombined.getBosDetail());
+                if (pokCombined.getBosHarga() != null) row.createCell(3).setCellValue(pokCombined.getBosHarga());
+                if (pokCombined.getBosPagu() != null) row.createCell(4).setCellValue(pokCombined.getBosPagu());
+                if (pokCombined.getBosSatuan() != null) row.createCell(5).setCellValue(pokCombined.getBosSatuan());
+                if (pokCombined.getBosVolume() != null) row.createCell(6).setCellValue(pokCombined.getBosVolume());
+                if (pokCombined.getNo() != null) row.createCell(7).setCellValue(pokCombined.getNo());
+                if (pokCombined.getSaktiDetail() != null) row.createCell(8).setCellValue(pokCombined.getSaktiDetail());
+                if (pokCombined.getSaktiHarga() != null)row.createCell(9).setCellValue(pokCombined.getSaktiHarga());
+                if (pokCombined.getSaktiPagu() != null)row.createCell(10).setCellValue(pokCombined.getSaktiPagu());
+                if (pokCombined.getSaktiVolume() != null)row.createCell(11).setCellValue(pokCombined.getSaktiVolume());
+                if (pokCombined.getStatus() != null)row.createCell(12).setCellValue(pokCombined.getStatus());
+            }
+        });
+
+        XSSFSheet sheetCheckBalance = workbook.createSheet("Balance");
+        String sqlBalance = "FROM Balance ORDER BY sakun";
+        Query<Balance> queryBalance = session.createQuery(sqlBalance, Balance.class);
+        List<Balance> balances = queryBalance.list();
+
+        balances.forEach(balance -> {
+            // setup cell for sheet Balance here
+        });
+
+        workbook.write(file);
+        file.close();
+        workbook.close();
+    } catch (IOException e) {
+        throw new RuntimeException(e);
+    }
+}
+
 void combineBosSakti () throws InterruptedException {
-    //Combine the two files here;
-
-    //Just try to get the diff data with a query, and insert the result to PokCombined
-
-    System.out.println("Combining....");
+    System.out.println("Combining ....");
     String query = "INSERT INTO POKCOMBINED (AKUN, NO, BOSDETAIL, BOSHARGA, BOSPAGU, BOSSATUAN, BOSVOLUME, SAKTIDETAIL, SAKTIHARGA, SAKTIPAGU, SAKTIVOLUME, STATUS) " +
             "SELECT  B.AKUN, B.NO, B.DETAIL, B.HARGA, B.PAGU, B.SATUAN, B.VOLUME, S.DETAIL, S.HARGA, S.PAGU, S.VOLUME, " +
             "CASE WHEN S.DETAIL IS NULL THEN 'REMOVE' WHEN (B.HARGA<>S.HARGA OR B.PAGU<>S.PAGU) THEN 'EDIT' ELSE '-' END AS STATUS " +
             "FROM POKBOS B LEFT JOIN POKSAKTI S ON B.AKUN=S.AKUN AND B.DETAIL=S.DETAIL";
 
     Transaction transaction = session.beginTransaction();
-    System.out.println("Result Count : " +
+    System.out.println("Combined record count : " +
             session.createNativeQuery(query).executeUpdate());
     transaction.commit();
 
@@ -70,20 +140,20 @@ void combineBosSakti () throws InterruptedException {
             "WHERE POKSAKTI.ID IS NOT NULL)";
 
     transaction = session.beginTransaction();
-    System.out.println("Result Count : " +
+    System.out.println("New record count : " +
             session.createNativeQuery(query).executeUpdate());
     transaction.commit();
 
-    System.out.println("Press Enter to exit....");
-    try {
-        System.in.read();
-    } catch (IOException e) {
-        throw new RuntimeException(e);
-    }
+    query = "SELECT *, CASE WHEN SBP=SSP THEN 'BALANCE' ELSE 'NOT BALANCE' END  AS STATUS FROM (SELECT LEFT(AKUN, 11) AS SAKUN, SUM(BOSPAGU) AS SBP, SUM(SAKTIPAGU) AS SSP " +
+            "FROM POKCOMBINED GROUP BY SAKUN)";
+    transaction = session.beginTransaction();
+    System.out.println("Check balance ...." +
+            session.createNativeQuery(query).executeUpdate());
+    transaction.commit();
 }
 
 void readSaktiFile (String filepath)  {
-    System.out.println("Reading sakti file....");
+    System.out.println("Reading sakti file ....");
     try {
         FileInputStream file = new FileInputStream(filepath);
         XSSFWorkbook workbook = new XSSFWorkbook(file);
@@ -133,13 +203,15 @@ void readSaktiFile (String filepath)  {
                 //        " " + pok.getVolume() + " " + pok.getHarga() + " " + pok.getPagu()) ;
             }
         }
+        file.close();
+        workbook.close();
     } catch (Exception e) {
         throw new RuntimeException(e.getMessage());
     }
 }
 
 void readBosFile (String filepath)  {
-    System.out.println("Reading bos file....");
+    System.out.println("Reading bos file ....");
     try {
         FileInputStream file = new FileInputStream(filepath);
         XSSFWorkbook workbook = new XSSFWorkbook(file);
@@ -206,6 +278,8 @@ void readBosFile (String filepath)  {
             //println(pok.getId() + " " + pok.getAkun() + " " + pok.getNo() + " " + pok.getDetail()
             //        + " " + pok.getVolume() + " " + pok.getSatuan() + " " + pok. getHarga() + " " + pok.getPagu());
         }
+        file.close();
+        workbook.close();
     } catch (Exception e) {
         throw new RuntimeException(e.getMessage());
     }
