@@ -1,6 +1,7 @@
 package gov.bdsn.etlsaktibos.util;
 
 import gov.bdsn.etlsaktibos.entity.PokBos;
+import gov.bdsn.etlsaktibos.entity.PokCombined;
 import gov.bdsn.etlsaktibos.entity.PokSakti;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -21,7 +22,8 @@ public class HibernateUtil {
                 configuration.setProperties(properties);
                 configuration
                         .addAnnotatedClass(PokBos.class)
-                        .addAnnotatedClass(PokSakti.class);
+                        .addAnnotatedClass(PokSakti.class)
+                        .addAnnotatedClass(PokCombined.class);
                 sessionFactory = configuration.buildSessionFactory();
 
             } catch (IOException e) {

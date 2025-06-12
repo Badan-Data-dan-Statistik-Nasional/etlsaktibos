@@ -1,4 +1,5 @@
 import gov.bdsn.etlsaktibos.entity.PokBos;
+import gov.bdsn.etlsaktibos.entity.PokCombined;
 import gov.bdsn.etlsaktibos.entity.PokSakti;
 import gov.bdsn.etlsaktibos.util.HibernateUtil;
 import org.apache.logging.log4j.LogManager;
@@ -51,12 +52,27 @@ void combineBosSakti () throws InterruptedException {
 
     //Just try to get the diff data with a query, and insert the result to PokCombined
 
+    System.out.println("Combining....");
+    String query = "INSERT INTO POKCOMBINED (AKUN, NO, BOSDETAIL, BOSHARGA, BOSPAGU, BOSSATUAN, BOSVOLUME, SAKTIDETAIL, SAKTIHARGA, SAKTIPAGU, SAKTIVOLUME, STATUS) " +
+            "SELECT  B.AKUN, B.NO, B.DETAIL, B.HARGA, B.PAGU, B.SATUAN, B.VOLUME, S.DETAIL, S.HARGA, S.PAGU, S.VOLUME, " +
+            "CASE WHEN S.DETAIL IS NULL THEN 'REMOVE' WHEN (B.HARGA<>S.HARGA OR B.PAGU<>S.PAGU) THEN 'EDIT' ELSE '-' END AS STATUS " +
+            "FROM POKBOS B LEFT JOIN POKSAKTI S ON B.AKUN=S.AKUN AND B.DETAIL=S.DETAIL";
 
-    //Start looping in PokBos
-    //Insert PokBos record into PokCombined
-    //Check if there is the same akun and detail in PokSakti
-    //  - if true, insert PokSakti into PokCombined
-    //  - if false,
+    Transaction transaction = session.beginTransaction();
+    System.out.println("Result Count : " +
+            session.createNativeQuery(query).executeUpdate());
+    transaction.commit();
+
+    query = "INSERT INTO POKCOMBINED (AKUN, SAKTIDETAIL, SAKTIHARGA, SAKTIPAGU, SAKTIVOLUME, STATUS) " +
+            "SELECT AKUN, DETAIL, HARGA, PAGU, VOLUME, 'NEW' AS STATUS FROM POKSAKTI WHERE ID NOT IN (SELECT POKSAKTI.ID FROM POKBOS " +
+            "LEFT JOIN POKSAKTI " +
+            "ON POKBOS.AKUN=POKSAKTI.AKUN AND POKBOS.DETAIL=POKSAKTI.DETAIL " +
+            "WHERE POKSAKTI.ID IS NOT NULL)";
+
+    transaction = session.beginTransaction();
+    System.out.println("Result Count : " +
+            session.createNativeQuery(query).executeUpdate());
+    transaction.commit();
 
     System.out.println("Press Enter to exit....");
     try {
@@ -67,6 +83,7 @@ void combineBosSakti () throws InterruptedException {
 }
 
 void readSaktiFile (String filepath)  {
+    System.out.println("Reading sakti file....");
     try {
         FileInputStream file = new FileInputStream(filepath);
         XSSFWorkbook workbook = new XSSFWorkbook(file);
@@ -112,8 +129,8 @@ void readSaktiFile (String filepath)  {
                 session.persist(pok);
                 transaction.commit();
 
-                println(pok.getId() + " " + pok.getAkun() + " " + pok.getNo() + " " + pok.getDetail() +
-                        " " + pok.getVolume() + " " + pok.getHarga() + " " + pok.getPagu()) ;
+                //println(pok.getId() + " " + pok.getAkun() + " " + pok.getNo() + " " + pok.getDetail() +
+                //        " " + pok.getVolume() + " " + pok.getHarga() + " " + pok.getPagu()) ;
             }
         }
     } catch (Exception e) {
@@ -122,6 +139,7 @@ void readSaktiFile (String filepath)  {
 }
 
 void readBosFile (String filepath)  {
+    System.out.println("Reading bos file....");
     try {
         FileInputStream file = new FileInputStream(filepath);
         XSSFWorkbook workbook = new XSSFWorkbook(file);
@@ -185,8 +203,8 @@ void readBosFile (String filepath)  {
             Transaction transaction = session.beginTransaction();
             session.persist(pok);
             transaction.commit();
-            println(pok.getId() + " " + pok.getAkun() + " " + pok.getNo() + " " + pok.getDetail()
-                    + " " + pok.getVolume() + " " + pok.getSatuan() + " " + pok. getHarga() + " " + pok.getPagu());
+            //println(pok.getId() + " " + pok.getAkun() + " " + pok.getNo() + " " + pok.getDetail()
+            //        + " " + pok.getVolume() + " " + pok.getSatuan() + " " + pok. getHarga() + " " + pok.getPagu());
         }
     } catch (Exception e) {
         throw new RuntimeException(e.getMessage());
